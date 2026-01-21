@@ -11,3 +11,17 @@ While general Finite Element Analysis (FEA) software can be used, dedicated addi
 = Structural integrity as it relates to directional oading due to layer-by-layer orientation of the part(s)\
 \
 These is particularly vital for metal 3D printing, where material costs are high and failure is expensive!
+\
+\
+
+Stages Involved:
+>+ Geometry or model is prepared in a CAD software 
+>+ Geometry is either sliced using an external desired slicer or intended to be sliced using Simlayer slicer
+>+ Geometry is imported into SimsLayer
+>+ Geometry is sliced if not already
+>+ GNN optimizes layers
+>+ Preprocessing is carried out
+>+ Meshing
+>+ GNN optimizes mesh
+>+ FEA
+>+ GNN suggests optimization for geometry
