@@ -3,6 +3,7 @@
 > Slicing:
 + PySLM — Python library focused on slicing, hatching and AM build file generation (research oriented). Can generate layer polygons/hatches.
 + Mandoline (small projects / examples) — compact Python slicer implementations (useful as learning/reference) — can slice STL into layer contours.
++ PySlicing
 
 \
 > G-Code = Toolpath Utilities
