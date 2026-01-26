@@ -3,6 +3,8 @@ from pyslm import hatching
 import numpy as np #library for handling arrays
 import os #To get cad file directory
 from pathlib import Path
+import tkinter as tk #library for GUI dialogs
+from tkinter import filedialog
 
 def slice_step_to_stl(input_file_path, output_folder, layer_thickness=0.04):
     """
@@ -72,23 +74,39 @@ def slice_step_to_stl(input_file_path, output_folder, layer_thickness=0.04):
 def main():
     """Main function to get input from user and process the file"""
     
-    print("="*60)
+    print("="*30)
     print("STEP File Slicer using PySLM")
-    print("="*60)
+    print("="*30)
     
     # Get input file path from user
-    input_file = input("\nEnter the path to your STEP file: ").strip()
-    
-    # Verify input file exists
-    if not os.path.exists(input_file):
-        print(f"Error: File '{input_file}' not found!")
+    '''
+    input_file = input("\nEnter the path to your STEP file: ").strip() #Select input file
+     # Verify input file exists
+    if not os.path.exists(file_path):
+        print(f"Error: File '{file_path}' not found!")
         return
+    '''
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+    inputFile = filedialog.askopenfilename(
+        title="Select the file to process",  # Customize the title
+        filetypes=(("All files", "*.*"), ("Text files", "*.txt"))  # Optional: Filter file types
+    )
+
+    # Check if a file was selected
+    if not inputFile:
+        print("No file selected. Exiting.")
+        exit()  # Or handle cancellation as needed
     
+   
     # Get output folder from user
-    output_folder = input("Enter the output folder path (default: ./sliced_output): ").strip()
+    '''output_folder = input("Enter the output folder path (default: ./sliced_output): ").strip() #Select output folder
     if not output_folder:
         output_folder = "./sliced_output"
-    
+    '''
+    outputFile = filedialog.askdirectory(
+        title="Select Output Folder",  # Customize the title
+    )
     # Optional: Get layer thickness
     thickness_input = input("Enter layer thickness in mm (default: 0.04): ").strip()
     layer_thickness = 0.04
@@ -101,7 +119,7 @@ def main():
     # Process the file
     print("\nProcessing...")
     try:
-        output_path = slice_step_to_stl(input_file, output_folder, layer_thickness)
+        output_path = slice_step_to_stl(inputFile, outputFile, layer_thickness)
         print(f"\n✓ Successfully processed: {output_path}")
     except Exception as e:
         print(f"\n✗ Failed to process file: {str(e)}")
