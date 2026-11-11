@@ -33,7 +33,8 @@ function parseStl(buffer) {
     positions = new Float32Array(values)
   }
 
-  if (positions.length < 9) throw new Error('No triangles in this STL.')
+  // One triangle is three vertices, nine numbers. Anything else cannot be drawn.
+  if (positions.length < 9 || positions.length % 9 !== 0) throw new Error('No triangles in this STL.')
 
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))

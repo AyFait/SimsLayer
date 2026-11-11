@@ -77,15 +77,29 @@ async function validateStl(file, head, tail) {
   if (/^solid\b/i.test(trimmed)) {
     const printable = printableShare(head, 2048)
     const hasFacet = /facet\s+normal/i.test(text)
-      && /vertex\s+[-+0-9.eE]+\s+[-+0-9.eE]+\s+[-+0-9.eE]+/i.test(text)
+    // A facet counts only when it closes with exactly three vertices.
+    const hasTriangle = closedFacetsAreTriangles(text)
     const hasEnd = /endsolid/i.test(asText(tail))
-    if (printable > 0.95 && hasFacet && hasEnd) return pass('ASCII STL', 'facet/vertex structure found')
-    if (printable > 0.95 && hasFacet) {
+    if (printable > 0.95 && hasTriangle && hasEnd) return pass('ASCII STL', 'facet/vertex structure found')
+    if (printable > 0.95 && hasFacet && !hasEnd) {
       return fail("This ASCII STL appears to be cut off (no 'endsolid' at the end).")
+    }
+    if (printable > 0.95 && hasFacet) {
+      return fail('This ASCII STL needs three vertices on every facet.')
     }
   }
 
   return fail('This does not look like a valid STL file (neither binary nor ASCII STL structure was found).')
+}
+
+function closedFacetsAreTriangles(text) {
+  const chunks = text.split(/facet\s+normal/i).slice(1)
+  const closed = chunks.filter((chunk) => /endfacet/i.test(chunk))
+  if (closed.length === 0) return false
+  return closed.every((chunk) => {
+    const vertices = chunk.match(/vertex\s+[-+0-9.eE]+\s+[-+0-9.eE]+\s+[-+0-9.eE]+/gi)
+    return vertices?.length === 3
+  })
 }
 
 function validateStep(head, tail) {

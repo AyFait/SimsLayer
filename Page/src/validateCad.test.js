@@ -65,6 +65,20 @@ test('rejects a truncated STEP file', async () => {
   assert.match(result.reason, /cut off/)
 })
 
+test('rejects an ASCII STL facet with only one vertex', async () => {
+  const partial = `solid broken
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+    endloop
+  endfacet
+endsolid broken
+`
+  const result = await validateCad(fileFrom('broken.stl', partial))
+  assert.equal(result.ok, false)
+  assert.match(result.reason, /three vertices/)
+})
+
 test('rejects a truncated ASCII STL', async () => {
   const cut = asciiStl.replace('endsolid block\n', '')
   const result = await validateCad(fileFrom('block.stl', cut))
