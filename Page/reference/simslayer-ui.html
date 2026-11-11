@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SimsLayer</title>
+<style>
+:root{
+  --bg:#f7f5f0; --panel:#f7f5f0; --ink:#14181f; --muted:#5c6470; --line:#14213d; --soft:#e8e5de;
+  --accent:#f2544a; --accent-ink:#fff; --card:#fffdf8; --mesh:22,190,90; --ok:#12a150; --bad:#d6382d;
+  --grid:rgba(20,33,61,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#0a0e13; --panel:#0f151c; --ink:#e8edf2; --muted:#8b96a3; --line:#2b3745; --soft:#18212b;
+  --accent:#ff6a5e; --accent-ink:#0a0e13; --card:#111922; --mesh:57,255,140; --ok:#3dff9a; --bad:#ff7a6e;
+  --grid:rgba(255,255,255,.06);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:background .3s,color .3s;min-height:100vh}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* header */
+.top{position:fixed;inset:0 0 auto 0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:20}
+body[data-view="upload"] .top{background:var(--bg);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em}
+.brand i{width:28px;height:28px;background:var(--line);color:var(--bg);display:grid;place-items:center;border-radius:4px}
+:root[data-theme="dark"] .brand i{background:var(--ink)}
+.top-right{display:flex;align-items:center;gap:12px}
+.icon-btn{width:36px;height:36px;border:1px solid var(--line);background:transparent;border-radius:4px;display:grid;place-items:center}
+.icon-btn:hover{background:var(--soft)}
+.sun{display:none}.moon{display:block}
+:root[data-theme="dark"] .sun{display:block}:root[data-theme="dark"] .moon{display:none}
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:var(--accent-ink);border:0;padding:14px 26px;border-radius:4px;font-weight:600;font-size:16px;transition:transform .15s,box-shadow .2s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px -10px var(--accent)}
+.btn.small{padding:8px 16px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* home */
+#home{position:relative;min-height:100vh;overflow:hidden}
+#mesh{position:absolute;inset:0;width:100%;height:100%;opacity:.5;filter:blur(.8px);pointer-events:none}
+.home-inner{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:80px 0 60px;text-align:center}
+.reel{width:100%;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:22px 0;margin-bottom:48px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.track{display:flex;width:max-content;animation:scroll 48s linear infinite}
+.reel:hover .track{animation-play-state:paused}
+@keyframes scroll{to{transform:translateX(-50%)}}
+.card{margin-right:22px;width:330px;flex:none;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px 12px;backdrop-filter:blur(4px)}
+.pair{display:flex;align-items:center;justify-content:space-between}
+.pair svg{width:118px;height:118px}
+.pair .arrow{color:var(--muted);font-size:22px}
+.before *{fill:none;stroke:var(--bad);stroke-width:2;stroke-dasharray:3 3;stroke-linejoin:round}
+.before .hot{fill:var(--bad);stroke:none;opacity:.35}
+.after *{fill:rgba(var(--mesh),.12);stroke:var(--ok);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.after path.l{fill:none}
+.card .cap{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px}
+.tag{font-size:11px;padding:2px 8px;border:1px solid var(--ok);color:var(--ok);border-radius:99px}
+h1.hero{font-size:clamp(46px,8vw,92px);line-height:1;margin:0;font-weight:700;letter-spacing:-.03em}
+.tagline{font-size:clamp(16px,2vw,22px);color:var(--muted);margin:14px 0 30px}
+
+/* upload */
+.page{max-width:900px;margin:0 auto;padding:84px 20px 60px}
+.step{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:26px 0 10px}
+.drop{display:block;width:100%;border:1.5px dashed var(--line);background:transparent;padding:38px 16px;text-align:center;border-radius:2px;transition:background .2s}
+.drop:hover,.drop.over{background:var(--soft)}
+.drop b{display:block;margin-top:6px}
+.drop small{display:block;color:var(--muted);margin-top:4px}
+.err{color:var(--bad);font-size:13px;margin:8px 0 0}
+.ok{color:var(--ok);font-size:13px;margin:8px 0 0}
+.viewport{position:relative;height:340px;border:1px solid var(--line);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:22px 22px;overflow:hidden}
+.viewport canvas{display:block;width:100%;height:100%}
+.vp-note{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:12px;text-align:center;padding:20px;pointer-events:none}
+.vp-hint{position:absolute;top:8px;left:10px;font-size:11px;color:var(--muted)}
+.vp-tools{position:absolute;right:8px;bottom:8px;display:flex;gap:6px}
+.vp-tools button{width:28px;height:28px;background:var(--line);color:var(--bg);border:0;border-radius:3px}
+:root[data-theme="dark"] .vp-tools button{background:var(--ink)}
+.panel{border:1px solid var(--line);padding:14px;margin-top:10px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border:1px solid var(--line);margin-bottom:14px}
+.tabs button{border:0;background:transparent;padding:9px;font-size:13px}
+.tabs button.on{background:var(--bg);font-weight:600}
+.sec{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:20px 0 10px}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:12px 0 6px}
+.row output{color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+label.f{font-size:11px;font-weight:600;display:block}
+input[type=number],select{width:100%;margin-top:4px;padding:9px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:0;font:inherit;font-size:13px}
+select{width:auto;min-width:130px}
+.switch{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.switch input{appearance:none;width:42px;height:22px;background:var(--soft);border:1px solid var(--line);border-radius:99px;position:relative;cursor:pointer;transition:.2s}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--ink);transition:.2s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{left:22px;background:var(--accent-ink)}
+.fmt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.fmt input{margin-top:3px;accent-color:var(--accent)}
+.fmt small{display:block;color:var(--muted);font-size:12px}
+.fmt:has(input:checked){background:var(--soft)}
+.status{font-size:13px;margin-top:14px;color:var(--muted)}
+@media (max-width:560px){.grid3{grid-template-columns:1fr}.card{width:290px}.pair svg{width:100px;height:100px}}
+@media (prefers-reduced-motion:reduce){.track{animation:none}}
+</style>
+</head>
+<body data-view="home">
+
+<header class="top">
+  <a class="brand" href="#/"><i><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></i>SimsLayer</a>
+  <div class="top-right">
+    <button class="btn small" id="sliceBtn" hidden disabled>▷ Slice Model</button>
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle dark / light mode">
+      <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ HOME ============ -->
+<section id="home">
+  <canvas id="mesh"></canvas>
+  <main class="home-inner">
+    <div class="reel"><div class="track" id="track"></div></div>
+    <h1 class="hero">SimsLayer</h1>
+    <p class="tagline">Optimize your part for 3D printing</p>
+    <a class="btn" href="#/upload">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload a part
+    </a>
+  </main>
+</section>
+
+<!-- ============ UPLOAD ============ -->
+<section id="upload" hidden>
+  <div class="page">
+    <div class="step">Step 1: Upload file</div>
+    <input type="file" id="file" accept=".stl,.step,.stp" hidden>
+    <button class="drop" id="drop" type="button">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+      <b>Upload file</b>
+      <small>Drag &amp; drop a file here</small>
+      <small>Supports: .stl, .step (max 100MB)</small>
+    </button>
+    <p id="msg" class="err" hidden></p>
+
+    <div class="step">3D Preview</div>
+    <div class="viewport" id="viewport">
+      <div class="vp-hint">✥ Drag to rotate</div>
+      <div class="vp-note" id="vpNote">Upload a file to preview</div>
+      <div class="vp-tools">
+        <button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zreset" aria-label="Reset view">⟲</button>
+      </div>
+    </div>
+
+    <div class="step">Step 2: Configure settings</div>
+    <div class="panel">
+      <div class="tabs"><button class="on" data-tab="slice">Slice</button><button data-tab="export">Export</button></div>
+
+      <div id="tab-slice">
+        <div class="sec">Layer settings</div>
+        <div class="row"><span>Layer height</span><output id="o-layer">0.2mm</output></div>
+        <input type="range" id="layer" min="0.05" max="0.4" step="0.05" value="0.2">
+        <div class="grid3" style="margin-top:14px">
+          <label class="f">Wall count<input type="number" id="walls" min="1" max="10" value="3"></label>
+          <label class="f">Top layers<input type="number" id="top" min="0" max="20" value="4"></label>
+          <label class="f">Bottom layers<input type="number" id="bottom" min="0" max="20" value="4"></label>
+        </div>
+
+        <div class="sec">Infill</div>
+        <div class="row"><span>Density</span><output id="o-infill">20%</output></div>
+        <input type="range" id="infill" min="0" max="100" step="1" value="20">
+        <label class="f" style="margin-top:14px">Pattern
+          <select id="pattern">
+            <option value="grid">Grid</option><option value="lines">Lines</option><option value="triangles">Triangles</option>
+            <option value="cuboid">Cuboid</option><option value="gyroid">Gyroid</option><option value="honeycomb">Honeycomb</option>
+          </select>
+        </label>
+
+        <div class="sec">Support</div>
+        <label class="switch">Enable Support<input type="checkbox" id="support"></label>
+        <div id="supportExtra" hidden>
+          <div class="row"><span>Support amount</span><output id="o-sup">50%</output></div>
+          <input type="range" id="supAmt" min="0" max="100" value="50">
+          <div class="row"><span>Support density</span><output id="o-supd">15%</output></div>
+          <input type="range" id="supDen" min="5" max="60" value="15">
+        </div>
+
+        <div class="sec">Print settings</div>
+        <div class="row"><span>Print speed</span><output id="o-speed">60mm/s</output></div>
+        <input type="range" id="speed" min="10" max="200" step="5" value="60">
+        <label class="f" style="margin-top:14px">Material
+          <select id="material">
+            <optgroup label="Standard">
+              <option>PLA</option><option>ABS</option><option>PETG</option>
+            </optgroup>
+            <optgroup label="Flexible">
+              <option>TPE</option><option>TPU (flexible PU)</option>
+            </optgroup>
+            <optgroup label="Engineering">
+              <option>Nylon</option><option>ASA (UV-resistant)</option><option>Carbon-fibre Nylon (high strength)</option>
+            </optgroup>
+            <optgroup label="Resin">
+              <option>Resin (SLA)</option>
+            </optgroup>
+          </select>
+        </label>
+      </div>
+
+      <div id="tab-export" hidden>
+        <div class="sec">Export format</div>
+        <div id="formats"></div>
+      </div>
+    </div>
+    <p class="status" id="status"></p>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const root=document.documentElement;
+
+/* ---------------- file validation ---------------- */
+const MAX_BYTES=100*1024*1024;
+const BAD_SIGS=[["a ZIP/Office archive",[0x50,0x4b]],["a PDF",[0x25,0x50,0x44,0x46]],["an image (PNG)",[0x89,0x50,0x4e,0x47]],
+  ["an image (JPEG)",[0xff,0xd8,0xff]],["an image (GIF)",[0x47,0x49,0x46]],["an executable",[0x4d,0x5a]],["a GZIP archive",[0x1f,0x8b]]];
+const startsWith=(b,sig)=>sig.every((v,i)=>b[i]===v);
+const asText=u8=>new TextDecoder("latin1").decode(u8);
+const fail=m=>({ok:false,reason:m}), pass=(kind,detail)=>({ok:true,kind,detail});
+
+async function validateCad(file){
+  const ext=(file.name.split(".").pop()||"").toLowerCase();
+  if(!["stl","step","stp"].includes(ext)) return fail("Only STEP (.step, .stp) and STL (.stl) files are supported.");
+  if(file.size===0) return fail("This file is empty.");
+  if(file.size>MAX_BYTES) return fail("This file is larger than 100MB.");
+  const head=new Uint8Array(await file.slice(0,65536).arrayBuffer());
+  const tail=new Uint8Array(await file.slice(Math.max(0,file.size-4096)).arrayBuffer());
+  for(const [name,sig] of BAD_SIGS) if(startsWith(head,sig)) return fail(`This looks like ${name}, not a CAD file, even though it is named .${ext}.`);
+  return ext==="stl" ? validateSTL(file,head,tail) : validateSTEP(head,tail);
+}
+
+async function validateSTL(file,head,tail){
+  // 1) binary STL: size must equal 84 + 50 * triangleCount
+  if(file.size>=84){
+    const dv=new DataView(await file.slice(0,Math.min(file.size,84+50*200)).arrayBuffer());
+    const n=dv.getUint32(80,true);
+    if(n>0 && 84+50*n===file.size){
+      let nonZero=false;
+      const check=Math.min(n,200);
+      for(let i=0;i<check;i++){
+        for(let k=0;k<12;k++){
+          const v=dv.getFloat32(84+i*50+k*4,true);
+          if(!Number.isFinite(v)||Math.abs(v)>1e9) return fail("The triangle data in this STL is corrupted.");
+          if(v!==0) nonZero=true;
+        }
+      }
+      if(!nonZero) return fail("This STL contains no usable geometry.");
+      return pass("Binary STL",`${n.toLocaleString()} triangles`);
+    }
+  }
+  // 2) ASCII STL
+  const text=asText(head), t=text.trimStart();
+  if(/^solid\b/i.test(t)){
+    const printable=[...head.slice(0,2048)].filter(c=>c===9||c===10||c===13||(c>=32&&c<127)).length/Math.min(head.length,2048);
+    const hasFacet=/facet\s+normal/i.test(text) && /vertex\s+[-+0-9.eE]+\s+[-+0-9.eE]+\s+[-+0-9.eE]+/i.test(text);
+    const hasEnd=/endsolid/i.test(asText(tail));
+    if(printable>0.95 && hasFacet && hasEnd) return pass("ASCII STL","facet/vertex structure found");
+    if(printable>0.95 && hasFacet) return fail("This ASCII STL appears to be cut off (no 'endsolid' at the end).");
+  }
+  return fail("This does not look like a valid STL file (neither binary nor ASCII STL structure was found).");
+}
+
+function validateSTEP(head,tail){
+  const text=asText(head), t=text.trimStart();
+  if(!/^ISO-10303-21;/.test(t)) return fail("This does not look like a STEP file (missing the ISO-10303-21 header).");
+  const printable=[...head.slice(0,4096)].filter(c=>c===9||c===10||c===13||(c>=32&&c<127)).length/Math.min(head.length,4096);
+  if(printable<0.95) return fail("This file contains binary data and is not a text STEP file.");
+  if(!/HEADER;/.test(text)||!/FILE_SCHEMA/.test(text)) return fail("The STEP header section is missing or damaged.");
+  if(!/END-ISO-10303-21;/.test(asText(tail))) return fail("This STEP file appears to be cut off (missing END-ISO-10303-21;).");
+  const schema=(text.match(/FILE_SCHEMA\s*\(\s*\(\s*'([^']*)'/)||[])[1];
+  return pass("STEP",schema?`schema: ${schema}`:"STEP structure found");
+}
+
+/* ---------------- theme ---------------- */
+function setTheme(t){
+  root.dataset.theme=t;
+  try{localStorage.setItem("sl-theme",t)}catch(e){}
+  Mesh.refresh(); Preview.refresh();
+}
+
+/* ---------------- reel ---------------- */
+function gear(cx,cy,ro,ri,n){
+  let d="";const m=n*4;
+  for(let i=0;i<m;i++){
+    const a=i/m*Math.PI*2, r=(i%4===1||i%4===2)?ro:ri;
+    d+=(i?"L":"M")+(cx+Math.cos(a)*r).toFixed(1)+" "+(cy+Math.sin(a)*r).toFixed(1);
+  }
+  return d+"Z";
+}
+const PARTS=[
+  {name:"Mounting bracket",svg:`<path d="M16 16h20v44h48v24H16z"/><circle cx="26" cy="26" r="3.5"/><circle cx="26" cy="74" r="3.5"/><circle cx="74" cy="72" r="3.5"/>`,hot:[[36,60],[26,30]]},
+  {name:"Spur gear",svg:`<path d="${gear(50,50,40,31,12)}"/><circle cx="50" cy="50" r="9"/>`,hot:[[50,12],[84,60]]},
+  {name:"Lattice block",svg:`<rect x="16" y="22" width="68" height="56" rx="4"/><path class="l" d="M16 50h68M50 22v56M16 36l34 14-34 14M84 36L50 50l34 14"/>`,hot:[[50,50],[24,30]]},
+  {name:"Cable hook",svg:`<path class="l" d="M38 14v38a18 18 0 1 0 36 0v-8"/><circle cx="38" cy="14" r="5"/>`,hot:[[38,52],[56,70]]},
+  {name:"Truss cube",svg:`<path d="M20 30l30-14 30 14v40l-30 14-30-14z"/><path class="l" d="M20 30l30 14 30-14M50 44v40"/>`,hot:[[50,44],[20,52]]},
+  {name:"Pipe flange",svg:`<circle cx="50" cy="50" r="38"/><circle cx="50" cy="50" r="14"/><circle cx="50" cy="20" r="3"/><circle cx="50" cy="80" r="3"/><circle cx="20" cy="50" r="3"/><circle cx="80" cy="50" r="3"/>`,hot:[[50,36],[72,60]]}
+];
+function buildReel(){
+  const card=p=>`<div class="card"><div class="pair">
+    <svg class="before" viewBox="0 0 100 100"><g transform="rotate(-6 50 50) skewX(5)">${p.svg}</g>${p.hot.map(([x,y])=>`<circle class="hot" cx="${x}" cy="${y}" r="9"/>`).join("")}</svg>
+    <span class="arrow">→</span>
+    <svg class="after" viewBox="0 0 100 100">${p.svg}</svg></div>
+    <div class="cap"><span>${p.name}</span><span class="tag">Optimized</span></div></div>`;
+  const html=PARTS.map(card).join("");
+  $("#track").innerHTML=html+html;           // doubled so the loop is seamless
+}
+
+/* ---------------- morphing mesh background ---------------- */
+const Mesh=(()=>{
+  const cv=$("#mesh"),ctx=cv.getContext("2d");
+  const N=64,HOLD=3800,MORPH=3200,K=3;
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W=0,H=0,raf=0,t0=0,rgb="22,190,90";
+  const rnd=(s=>()=>(s=(s*16807)%2147483647)/2147483647)(11);
+  const shapes=[];
+  (function make(){
+    shapes.push(Array.from({length:N},(_,i)=>{const a=i/N*Math.PI*2;return[Math.cos(a)*.8,Math.sin(a)*.8]}));
+    shapes.push(Array.from({length:N},(_,i)=>[((i%8)/7*2-1)*.9,(Math.floor(i/8)/7*2-1)*.8]));
+    shapes.push(Array.from({length:N},(_,i)=>{const a=i*.62,r=(i/N)*.95+.05;return[Math.cos(a)*r,Math.sin(a)*r]}));
+    shapes.push(Array.from({length:N},()=>[(rnd()*2-1)*.95,(rnd()*2-1)*.85]));
+    shapes.push(Array.from({length:N},(_,i)=>{const x=i/(N-1)*2-1;return[x*.95,Math.sin(x*5+(i%2)*.7)*.4+(i%2?.28:-.28)]}));
+    shapes.push(Array.from({length:N},(_,i)=>{const ring=i<24?0:i<44?1:2,cnt=[24,20,20][ring],j=ring===0?i:ring===1?i-24:i-44,a=j/cnt*Math.PI*2+ring*.4;return[Math.cos(a)*[.85,.55,.25][ring],Math.sin(a)*[.85,.55,.25][ring]]}));
+  })();
+  const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  function refresh(){rgb=getComputedStyle(root).getPropertyValue("--mesh").trim()||rgb; if(reduce&&W)draw(0)}
+  function resize(){
+    const d=Math.min(devicePixelRatio||1,2);
+    W=cv.clientWidth;H=cv.clientHeight;if(!W||!H)return;
+    cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);
+    if(reduce)draw(0);
+  }
+  function draw(ts){
+    const cycle=HOLD+MORPH,el=ts-t0,k=Math.floor(el/cycle),local=el-k*cycle;
+    const a=shapes[k%shapes.length],b=shapes[(k+1)%shapes.length];
+    const p=local<HOLD?0:ease((local-HOLD)/MORPH);
+    const pts=new Array(N);
+    for(let i=0;i<N;i++){
+      const x=a[i][0]+(b[i][0]-a[i][0])*p+Math.sin(ts/1700+i)*.012;
+      const y=a[i][1]+(b[i][1]-a[i][1])*p+Math.cos(ts/1500+i*1.3)*.012;
+      pts[i]=[W/2+x*W*.5,H/2+y*H*.5];
+    }
+    ctx.clearRect(0,0,W,H);
+    const maxd=Math.min(W,H)*.45;
+    ctx.lineWidth=1;
+    for(let i=0;i<N;i++){
+      const near=[];                          // k nearest neighbours
+      for(let j=0;j<N;j++){
+        if(j===i)continue;
+        const dx=pts[i][0]-pts[j][0],dy=pts[i][1]-pts[j][1],dist=Math.hypot(dx,dy);
+        if(near.length<K||dist<near[near.length-1][1]){near.push([j,dist]);near.sort((u,v)=>u[1]-v[1]);if(near.length>K)near.pop()}
+      }
+      for(const [j,dist] of near){
+        const al=Math.max(.06,.55*(1-dist/maxd));
+        ctx.strokeStyle=`rgba(${rgb},${al})`;
+        ctx.beginPath();ctx.moveTo(pts[i][0],pts[i][1]);ctx.lineTo(pts[j][0],pts[j][1]);ctx.stroke();
+      }
+    }
+    ctx.shadowColor=`rgba(${rgb},.9)`;ctx.shadowBlur=10;ctx.fillStyle=`rgba(${rgb},.9)`;
+    for(const [x,y] of pts){ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill()}
+    ctx.shadowBlur=0;
+  }
+  function loop(ts){draw(ts);raf=requestAnimationFrame(loop)}
+  function start(){refresh();resize();if(reduce||raf)return;t0=performance.now();raf=requestAnimationFrame(loop)}
+  function stop(){cancelAnimationFrame(raf);raf=0}
+  new ResizeObserver(resize).observe(cv);
+  return{start,stop,refresh};
+})();
+
+/* ---------------- 3D preview ---------------- */
+const Preview=(()=>{
+  const host=$("#viewport");
+  let renderer,scene,camera,controls,mesh,grid,raf=0,ready=false,size=100;
+  function init(){
+    if(ready||!window.THREE)return;
+    renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+    host.insertBefore(renderer.domElement,host.firstChild);
+    scene=new THREE.Scene();
+    camera=new THREE.PerspectiveCamera(40,1,.1,10000);camera.up.set(0,0,1);camera.position.set(120,-120,100);
+    scene.add(new THREE.AmbientLight(0xffffff,.65));
+    const l1=new THREE.DirectionalLight(0xffffff,.8);l1.position.set(1,-1,2);scene.add(l1);
+    const l2=new THREE.DirectionalLight(0xffffff,.35);l2.position.set(-1,1,.5);scene.add(l2);
+    controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+    new ResizeObserver(fit).observe(host);
+    ready=true;fit();refresh();
+  }
+  function fit(){if(!ready)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+  function cssColor(v){return getComputedStyle(root).getPropertyValue(v).trim()}
+  function refresh(){
+    if(!ready)return;
+    if(mesh)mesh.material.color.set(root.dataset.theme==="dark"?0x9fb4c8:0x3b4a63);
+    if(grid){scene.remove(grid);grid.geometry.dispose();makeGrid()}
+  }
+  function makeGrid(){
+    const dark=root.dataset.theme==="dark";
+    grid=new THREE.GridHelper(size*2.4,24,dark?0x3a4a5c:0x9aa3b2,dark?0x25303d:0xc9cdd6);
+    grid.rotation.x=Math.PI/2;scene.add(grid);
+  }
+  function parseSTL(buf){
+    const dv=new DataView(buf),n=buf.byteLength>=84?dv.getUint32(80,true):0;
+    let pos;
+    if(84+n*50===buf.byteLength){
+      pos=new Float32Array(n*9);
+      for(let i=0;i<n;i++){const o=84+i*50+12;for(let v=0;v<3;v++)for(let c=0;c<3;c++)pos[i*9+v*3+c]=dv.getFloat32(o+v*12+c*4,true)}
+    }else{
+      const txt=new TextDecoder().decode(buf),re=/vertex\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)/g,arr=[];let m;
+      while((m=re.exec(txt)))arr.push(+m[1],+m[2],+m[3]);
+      pos=new Float32Array(arr);
+    }
+    const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));g.computeVertexNormals();return g;
+  }
+  async function show(file,kind){
+    init();
+    const note=$("#vpNote");
+    if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh=null}
+    if(!ready){note.textContent="3D preview library could not load (check your internet connection).";note.hidden=false;return}
+    if(!/STL/.test(kind)){note.textContent="STEP file accepted. Browser preview for STEP isn't available yet; it will be shown after processing.";note.hidden=false;return}
+    const g=parseSTL(await file.arrayBuffer());
+    g.computeBoundingBox();const bb=g.boundingBox,c=new THREE.Vector3();bb.getCenter(c);
+    g.translate(-c.x,-c.y,-bb.min.z);
+    const dim=new THREE.Vector3();bb.getSize(dim);size=Math.max(dim.x,dim.y,dim.z)||1;
+    mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial({flatShading:true,roughness:.6,metalness:.1}));scene.add(mesh);
+    refresh();
+    if(!grid)makeGrid();
+    controls.target.set(0,0,dim.z/2);resetView();note.hidden=true;
+  }
+  function resetView(){if(!ready)return;camera.position.set(size*1.4,-size*1.4,size*1.1);controls.update()}
+  function zoom(f){if(!ready)return;camera.position.sub(controls.target).multiplyScalar(f).add(controls.target);controls.update()}
+  function loop(){raf=requestAnimationFrame(loop);if(ready){controls.update();renderer.render(scene,camera)}}
+  function start(){init();fit();if(!raf)loop()}
+  function stop(){cancelAnimationFrame(raf);raf=0}
+  $("#zin").onclick=()=>zoom(.8);$("#zout").onclick=()=>zoom(1.25);$("#zreset").onclick=resetView;
+  return{show,start,stop,refresh};
+})();
+
+/* ---------------- upload page wiring ---------------- */
+const state={file:null,kind:null};
+const msg=$("#msg");
+function showMsg(text,good){msg.textContent=text;msg.className=good?"ok":"err";msg.hidden=false}
+async function handleFile(file){
+  if(!file)return;
+  const r=await validateCad(file);
+  if(!r.ok){state.file=null;$("#sliceBtn").disabled=true;showMsg(r.reason,false);return}
+  state.file=file;state.kind=r.kind;
+  showMsg(`${file.name} (${(file.size/1048576).toFixed(1)} MB) — ${r.kind}, ${r.detail}`,true);
+  $("#sliceBtn").disabled=false;
+  Preview.show(file,r.kind).catch(()=>{$("#vpNote").textContent="Couldn't render a preview for this file.";$("#vpNote").hidden=false});
+}
+const drop=$("#drop"),input=$("#file");
+drop.onclick=()=>input.click();
+input.onchange=()=>{handleFile(input.files[0]);input.value=""};
+["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",ev=>handleFile(ev.dataTransfer.files[0]));
+
+// live labels
+const bind=(id,out,fmt)=>{const el=$("#"+id),o=$("#"+out),u=()=>o.textContent=fmt(el.value);el.oninput=u;u()};
+bind("layer","o-layer",v=>(+v).toFixed(2).replace(/0$/,"")+"mm");
+bind("infill","o-infill",v=>v+"%");bind("supAmt","o-sup",v=>v+"%");bind("supDen","o-supd",v=>v+"%");bind("speed","o-speed",v=>v+"mm/s");
+$("#support").onchange=e=>$("#supportExtra").hidden=!e.target.checked;
+
+// tabs
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  $("#tab-slice").hidden=b.dataset.tab!=="slice";$("#tab-export").hidden=b.dataset.tab!=="export";
+});
+
+// export formats
+const FORMATS=[
+  ["gcode","G-code",".gcode","Works with most FDM printers (Marlin, Klipper, Prusa…)"],
+  ["bgcode","Binary G-code",".bgcode","Compact binary G-code (Prusa and compatible firmware)"],
+  ["3mf","3MF package",".3mf","Model + print settings in one package"],
+  ["photon","Anycubic Photon",".pwmx / .pws","Resin printers from Anycubic"],
+  ["ctb","Chitubox",".ctb","Resin printers using Chitubox format"],
+  ["goo","Elegoo Saturn / Mars",".goo","Resin printers from Elegoo"]
+];
+$("#formats").innerHTML=FORMATS.map((f,i)=>`<label class="fmt"><input type="radio" name="fmt" value="${f[0]}" ${i?"":"checked"}><span><b>${f[1]}</b> <span style="color:var(--muted)">${f[2]}</span><small>${f[3]}</small></span></label>`).join("");
+
+// collect settings and hand off (hook for the real slicer)
+function settings(){
+  return{
+    file:state.file&&state.file.name,layerHeight:+$("#layer").value,walls:+$("#walls").value,topLayers:+$("#top").value,bottomLayers:+$("#bottom").value,
+    infillDensity:+$("#infill").value,infillPattern:$("#pattern").value,
+    support:$("#support").checked?{amount:+$("#supAmt").value,density:+$("#supDen").value}:null,
+    printSpeed:+$("#speed").value,material:$("#material").value,exportFormat:document.querySelector("input[name=fmt]:checked").value
+  };
+}
+$("#sliceBtn").onclick=()=>{
+  const s=settings();
+  window.dispatchEvent(new CustomEvent("simslayer:slice",{detail:s}));   // connect your slicer here
+  console.log("SimsLayer slice request",s);
+  $("#status").textContent="Slice request prepared (see console). The slicing engine isn't connected to this page yet.";
+};
+
+/* ---------------- routing + boot ---------------- */
+function route(){
+  const up=location.hash.startsWith("#/upload");
+  $("#home").hidden=up;$("#upload").hidden=!up;$("#sliceBtn").hidden=!up;
+  document.body.dataset.view=up?"upload":"home";
+  if(up){Mesh.stop();Preview.start()}else{Preview.stop();Mesh.start()}
+  scrollTo(0,0);
+}
+$("#themeBtn").onclick=()=>setTheme(root.dataset.theme==="dark"?"light":"dark");
+let saved=null;try{saved=localStorage.getItem("sl-theme")}catch(e){}
+root.dataset.theme=saved||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+buildReel();
+addEventListener("hashchange",route);
+route();
+</script>
+</body>
+</html>
